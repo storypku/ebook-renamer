@@ -9,12 +9,11 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "openai>=3.55.1",
-    "pymupdf>=2.1",
     "pypdf>=7.1.1",
 ]
 
 [project.scripts]
-ebook_renamer = "ebook_renamer:main"
+ebook_renamer = "ebook_renamer.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.13.9,<0.14.0"]
