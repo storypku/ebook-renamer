@@ -1,0 +1,42 @@
+[project]
+name = "ebook_renamer"
+version = "0.1.0"
+description = "A tool to rename pdf and epub ebooks automatically"
+readme = "README.md"
+authors = [
+    { name = "Jiaming Liu", email = "storypku@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pymupdf>=2.1",
+    "pypdf>=7.1.1",
+]
+
+[project.scripts]
+ebook_renamer = "ebook_renamer:main"
+
+[build-system]
+requires = ["uv_build>=0.13.9,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # Pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.5",
+]
