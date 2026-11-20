@@ -3,13 +3,11 @@ import logging
 import sys
 from pathlib import Path
 
-from ebook_renamer import processor
+import ebook_renamer.processor as processor
 
 
 def main() -> None:
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logger = logging.getLogger(__name__)
     parser = argparse.ArgumentParser(
         description="A tool for renaming ebook (pdf, epub) files"
     )
@@ -45,7 +43,7 @@ def main() -> None:
             ]
         )
     except (ValueError, FileNotFoundError) as ex:
-        logging.error(f"Exception caught collecting ebooks: {ex}")
+        logger.error(f"Exception caught collecting ebooks: {ex}")
         sys.exit(1)
 
     processor.rename_ebooks(ebooks, dry_run=dry_run)

@@ -1,4 +1,5 @@
 import enum
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -6,19 +7,82 @@ import pypdf
 
 SUPPORTED_EXTENSIONS = [".pdf", ".epub"]
 
+KNOWN_EDITIONS = [
+    "First",
+    "Second",
+    "Third",
+    "Fourth",
+    "Fifth",
+    "Sixth",
+    "Seventh",
+    "Eighth",
+    "Ninth",
+    "Tenth",
+    "Eleventh",
+    "Twelfth",
+    "Thirteenth",
+    "Fourteenth",
+    "Fifteenth",
+    "Sixteenth",
+    "Seventeenth",
+    "Eighteenth",
+    "Nineteenth",
+    "Twentieth",
+]
+
+PUB_YEAR_MISSING = "0000"
+
+# Special characters
+EM_DASH = chr(0x2014)
+COLON = ":"
+
+
+def ordinal(n: int) -> str:
+    if 10 <= n % 100 <= 20:
+        suf = "th"
+    else:
+        suf = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suf}"
+
+
+SUFFIX_MAP = {
+    f"{w} Edition": f"{ordinal(i + 1)}" for (i, w) in enumerate(KNOWN_EDITIONS)
+}
+
+
 class EbookType(enum.IntEnum):
     PDF = 1
     EPUB = 2
 
-PUB_YEAR_MISSING = "0000"
 
 @dataclass
 class EbookInfo:
     title: str
-    sub_title: str = ""
-    etype: EbookInfo = EbookType.PDF
+    subtitle: str | None = None
+    etype: EbookType = EbookType.PDF
     pub_year: str = PUB_YEAR_MISSING
     edition: str | None = None
+
+    def __repr__(self) -> str:
+        title = f"{self.title}:{self.subtitle}" if self.subtitle else self.title
+        return (
+            f"EbookInfo("
+            f"title={title}, "
+            f"etype={self.etype.name.lower()}, "
+            f"pub_year={self.pub_year}, "
+            f"edition={self.edition!r}"
+            f")"
+        )
+
+    def canonical_filename(self) -> str:
+        ans = ".".join(self.title.split())
+        if self.subtitle:
+            ans += ".{}".format(".".join(self.subtitle.split()))
+        if self.edition:
+            ans += f".{self.edition}"
+        ans += f".{self.pub_year}.{self.etype.name.lower()}"
+        return ans
+
 
 def is_ebook(p: Path):
     return p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
@@ -45,3 +109,27 @@ def extract_text_from_first_pages_of_pdf(fpath: Path, num_pages: int) -> str:
             result.append(text)
 
     return "\n".join(result)
+
+
+def normalize(text: str) -> str:
+    if text.isupper():
+        return " ".join(word.capitalize() for word in text.split())
+    return text
+
+
+def sanitize_ebook(s: str) -> tuple[str, str | None, str | None]:
+    subtitle = None
+    edition = None
+    s = re.sub(r"\s*\([^()]*\)", "", s).strip()
+    if s.endswith(" Edition"):
+        for k, v in SUFFIX_MAP.items():
+            if s.endswith(k):
+                edition = v
+                s = s[: -len(k)].rstrip()
+    s = s.replace(EM_DASH, " ").replace("-", " ").replace(",", " ")
+    s = re.sub(r"\s+", " ", normalize(s))
+    if COLON in s:
+        title, subtitle = s.split(COLON)
+    else:
+        title = s
+    return (title, subtitle, edition)

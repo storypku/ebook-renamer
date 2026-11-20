@@ -1,10 +1,10 @@
-import logging
 import os
 from pathlib import Path
 
 import openai
 
-from ebook_renamer import utils as ebook_utils
+import ebook_renamer.utils as ebook_utils
+from ebook_renamer.logger import logger
 
 MAX_TEXT_LENGTH = 4096
 MAX_NUMBER_OF_PAGES = 3
@@ -61,5 +61,5 @@ class LlmClient:
                 raise RuntimeError("LLM returned empty content")
             return content.strip()
         except openai.APIError:
-            logging.exception("LLM API request failed")
+            logger.exception("LLM API request failed")
             raise

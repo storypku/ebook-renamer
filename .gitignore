@@ -1,8 +1,8 @@
 /data/*
 /good/*
-/bad/*
 __pycache__
 /uv.lock
 /.python-version
+/*.pkl
 
 
