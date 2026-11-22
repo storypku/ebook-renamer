@@ -3,13 +3,13 @@ import logging
 import colorlog
 
 
-def setup_logger(name: str = "ebook_renamer") -> logging.Logger:
+def setup_logger(name: str = "ebook_renamer", verbose: bool = False) -> logging.Logger:
     logger = logging.getLogger(name)
 
     if logger.handlers:
         return logger
 
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.INFO if not verbose else logging.DEBUG)
 
     handler = colorlog.StreamHandler()
     handler.setFormatter(
@@ -29,6 +29,3 @@ def setup_logger(name: str = "ebook_renamer") -> logging.Logger:
     logger.propagate = False
 
     return logger
-
-
-logger = setup_logger()

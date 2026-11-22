@@ -1,16 +1,17 @@
+import logging
 import os
 from pathlib import Path
 
 import openai
 
 import ebook_renamer.utils as ebook_utils
-from ebook_renamer.logger import logger
+from ebook_renamer.utils import EbookType
 
 MAX_TEXT_LENGTH = 4096
 MAX_NUMBER_OF_PAGES = 3
 
 PROMPT_TEMPLATE = """
-Below is the text from the first few pages of a PDF.
+Below is the text from the first few pages of {}.
 Please extract the title of this document. If edition
 information provided, append it into the title in a
 format such as "Second Edition" or "Third Edition".
@@ -20,6 +21,8 @@ Return only the title text, without any explanation or punctuation.
 Text content:
 {}
 """
+
+logger = logging.getLogger(__name__)
 
 
 class LlmClient:
@@ -41,11 +44,19 @@ class LlmClient:
         text = ebook_utils.extract_text_from_first_pages_of_pdf(
             pdf_path, num_pages=num_pages
         )
-        return self._extract_title(text[:MAX_TEXT_LENGTH])
+        return self._extract_title(text[:MAX_TEXT_LENGTH], EbookType.PDF)
 
-    def _extract_title(self, text: str) -> str:
-        prompt = PROMPT_TEMPLATE.format(text)
+    def extract_title_of_epub(
+        self, pdf_path: Path, num_pages: int = MAX_NUMBER_OF_PAGES
+    ) -> str:
+        text = ebook_utils.extract_text_from_first_pages_of_epub(
+            pdf_path, num_pages=num_pages
+        )
+        return self._extract_title(text[:MAX_TEXT_LENGTH], EbookType.EPUB)
 
+    def _extract_title(self, text: str, etype: EbookType) -> str:
+        book_type_msg = "a PDF" if etype == EbookType.PDF else "an ePub"
+        prompt = PROMPT_TEMPLATE.format(book_type_msg, text)
         try:
             response = self.client.chat.completions.create(
                 model="deepseek-flash",
@@ -59,7 +70,10 @@ class LlmClient:
             content = response.choices[0].message.content
             if not content or not content.strip():
                 raise RuntimeError("LLM returned empty content")
-            return content.strip()
-        except openai.APIError:
-            logger.exception("LLM API request failed")
+
+            ans = content.strip()
+            logger.debug("Response from LLM: %s", ans)
+            return ans
+        except openai.APIError as ex:
+            logger.exception("LLM API request failed: %s", ex)
             raise

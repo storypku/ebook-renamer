@@ -1,13 +1,13 @@
 import argparse
-import logging
 import sys
 from pathlib import Path
 
 import ebook_renamer.processor as processor
+from ebook_renamer.logger import setup_logger
 
 
 def main() -> None:
-    logger = logging.getLogger(__name__)
+
     parser = argparse.ArgumentParser(
         description="A tool for renaming ebook (pdf, epub) files"
     )
@@ -24,13 +24,18 @@ def main() -> None:
         help="Search subdirectories recursively",
     )
     parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Verbose output",
+    )
+    parser.add_argument(
         "--apply",
         action="store_true",
         help="Actually rename files (default: dry run)",
     )
     args = parser.parse_args()
 
-    dry_run = not args.apply
+    logger = setup_logger(verbose=args.verbose)
 
     ebooks = []
     # Collect files from all ebook paths.
@@ -46,4 +51,5 @@ def main() -> None:
         logger.error(f"Exception caught collecting ebooks: {ex}")
         sys.exit(1)
 
+    dry_run = not args.apply
     processor.rename_ebooks(ebooks, dry_run=dry_run)

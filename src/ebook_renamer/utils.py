@@ -1,9 +1,13 @@
 import enum
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
 
+import ebooklib.epub as epub
 import pypdf
+from bs4 import BeautifulSoup
+from ebooklib import ITEM_DOCUMENT as EBOOK_ITEM_DOCUMENT
 
 SUPPORTED_EXTENSIONS = [".pdf", ".epub"]
 
@@ -35,6 +39,8 @@ PUB_YEAR_MISSING = "0000"
 # Special characters
 EM_DASH = chr(0x2014)
 COLON = ":"
+
+logger = logging.getLogger(__name__)
 
 
 def ordinal(n: int) -> str:
@@ -111,6 +117,36 @@ def extract_text_from_first_pages_of_pdf(fpath: Path, num_pages: int) -> str:
     return "\n".join(result)
 
 
+def extract_text_from_first_pages_of_epub(fpath: Path, num_pages: int) -> str:
+    """Extract text from the first n pages of an ePub."""
+
+    book = epub.read_epub(fpath)
+    texts = []
+
+    for item_id, _ in book.spine:
+        item = book.get_item_with_id(item_id)
+        if item is None or item.get_type() != EBOOK_ITEM_DOCUMENT:
+            continue
+        try:
+            content = item.get_content()
+            soup = BeautifulSoup(content, "html.parser")
+
+            for tag in soup(["script", "style", "noscript"]):
+                tag.decompose()
+
+            text = soup.get_text(separator=" ", strip=True)
+
+            if not text:
+                continue
+            texts.append(text)
+            if len(texts) >= num_pages:
+                break
+        except (KeyError, OSError) as exc:
+            logger.exception(f"Skipping {item.get_name()}: {exc}")
+
+    return "\n".join(texts)
+
+
 def normalize(text: str) -> str:
     if text.isupper():
         return " ".join(word.capitalize() for word in text.split())
@@ -126,7 +162,7 @@ def sanitize_ebook(s: str) -> tuple[str, str | None, str | None]:
             if s.endswith(k):
                 edition = v
                 s = s[: -len(k)].rstrip()
-    s = s.replace(EM_DASH, " ").replace("-", " ").replace(",", " ")
+    s = s.replace(EM_DASH, " ").replace("-", " ").replace(",", " ").replace("'", "")
     s = re.sub(r"\s+", " ", normalize(s))
     if COLON in s:
         title, subtitle = s.split(COLON)
