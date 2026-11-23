@@ -16,7 +16,7 @@ def collect_ebooks(
     ebooks = []
     if path.is_file():
         if not ebook_utils.is_ebook(path):
-            raise ValueError("Not an ebook: %s", path)
+            raise ValueError(f"Not an ebook: {path}")
         else:
             return [path]
 
@@ -75,8 +75,9 @@ def rename_ebooks(paths: list[Path], dry_run=True):
             logger.exception(f"Failed to rename {fpath}: {ex}")
             failures += 1
 
-    logger.info(
-        "Finished processing ebooks: %d succeeded, %d failed",
-        num_books - failures,
-        failures,
-    )
+    if num_books > 1:
+        logger.info(
+            "Finished processing ebooks: %d succeeded, %d failed",
+            num_books - failures,
+            failures,
+        )

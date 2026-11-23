@@ -48,7 +48,9 @@ def main() -> None:
             ]
         )
     except (ValueError, FileNotFoundError) as ex:
-        logger.error(f"Exception caught collecting ebooks: {ex}")
+        logger.error(
+            "Exception caught collecting ebooks: %s(%s)", type(ex).__name__, str(ex)
+        )
         sys.exit(1)
 
     dry_run = not args.apply
